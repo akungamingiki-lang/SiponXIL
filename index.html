@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Poin Pelanggaran Siswa (SIPON)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-30 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-brand-500 text-white p-2 rounded-xl shadow-md">
+                        <i class="fa-solid fa-shield-halved text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight">SIPON SISWA</h1>
+                        <p class="text-xs text-slate-400">Sistem Poin & Disiplin Siswa</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="resetToSampleData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1.5" title="Reset Data ke Sampel">
+                        <i class="fa-solid fa-rotate-right text-amber-400"></i>
+                        <span class="hidden sm:inline">Reset Sampel</span>
+                    </button>
+                    <button onclick="openModal('modalLogAktivitas')" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span class="hidden sm:inline">Log Aktivitas</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
+
+        <!-- Sidebar / Navigation Tabs -->
+        <aside class="w-full md:w-64 shrink-0 no-print">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3 sticky top-20">
+                <nav class="space-y-1">
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition bg-brand-50 text-brand-600">
+                        <i class="fa-solid fa-chart-pie text-lg w-5 text-center"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('siswa')" id="tab-siswa" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                        <i class="fa-solid fa-user-graduate text-lg w-5 text-center"></i> Data Siswa
+                    </button>
+                    <button onclick="switchTab('catat')" id="tab-catat" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                        <i class="fa-solid fa-triangle-exclamation text-lg w-5 text-center text-amber-500"></i> Input Pelanggaran
+                    </button>
+                    <button onclick="switchTab('katalog')" id="tab-katalog" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                        <i class="fa-solid fa-book-bookmark text-lg w-5 text-center"></i> Master Pelanggaran
+                    </button>
+                    <button onclick="switchTab('riwayat')" id="tab-riwayat" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                        <i class="fa-solid fa-file-invoice text-lg w-5 text-center"></i> Riwayat & Laporan
+                    </button>
+                </nav>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 px-3">
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Sistem Info</div>
+                    <div class="bg-slate-50 p-3 rounded-xl text-xs space-y-1.5 text-slate-600">
+                        <div class="flex justify-between"><span>Poin Awal:</span> <span class="font-semibold text-slate-800">100 Poin</span></div>
+                        <div class="flex justify-between"><span>Status Simpan:</span> <span class="text-emerald-600 font-semibold"><i class="fa-solid fa-hard-drive"></i> LocalStorage</span></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 min-w-0">
+
+            <!-- TAB 1: DASHBOARD -->
+            <section id="sec-dashboard" class="tab-content space-y-6">
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Total Siswa</p>
+                            <h3 id="statTotalSiswa" class="text-2xl font-bold text-slate-800">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Pelanggaran Dicatat</p>
+                            <h3 id="statTotalPelanggaran" class="text-2xl font-bold text-slate-800">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Perlu Penanganan</p>
+                            <h3 id="statPerluPenanganan" class="text-2xl font-bold text-rose-600">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Status Distribution -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                        <h4 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-brand-500"></i> Distribusi Status Disiplin Siswa
+                        </h4>
+                        <div class="h-64 relative flex items-center justify-center">
+                            <canvas id="chartStatus"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Category Breakdown -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                        <h4 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-bar text-brand-500"></i> Pelanggaran Berdasarkan Tingkat
+                        </h4>
+                        <div class="h-64 relative">
+                            <canvas id="chartKategori"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Critical Students Quick List -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
+                        <h4 class="font-bold text-rose-900 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-circle-exclamation text-rose-500"></i> Siswa Butuh Penanganan Khusus (Poin <= 70)
+                        </h4>
+                        <button onclick="switchTab('siswa')" class="text-xs font-semibold text-brand-600 hover:underline">Lihat Semua Siswa &rarr;</button>
+                    </div>
+                    <div class="divide-y divide-slate-100" id="listPerluPenanganan">
+                        <!-- Dynamic list -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: DATA SISWA -->
+            <section id="sec-siswa" class="tab-content hidden space-y-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg">Manajemen Data Siswa</h3>
+                        <p class="text-xs text-slate-500">Kelola informasi siswa, pantau sisa poin, serta import/eksport data.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                        <button onclick="openModal('modalImportSiswa')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-xl shadow-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-import"></i> Import CSV
+                        </button>
+                        <button onclick="openModal('modalSiswa')" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium text-xs rounded-xl shadow-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-plus"></i> Tambah Siswa
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div class="relative sm:col-span-2">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <input type="text" id="searchSiswa" oninput="renderSiswaTable()" placeholder="Cari Nama / NISN..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+                    <select id="filterKelas" onchange="renderSiswaTable()" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-slate-700">
+                        <option value="">Semua Kelas</option>
+                    </select>
+                    <select id="filterStatus" onchange="renderSiswaTable()" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-slate-700">
+                        <option value="">Semua Status</option>
+                        <option value="Aman">Aman (71 - 100)</option>
+                        <option value="Waspada">Waspada (31 - 70)</option>
+                        <option value="Bahaya">Bahaya (0 - 30)</option>
+                    </select>
+                </div>
+
+                <!-- Table -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
+                            <tr>
+                                <th class="px-5 py-3.5">NISN / Nama</th>
+                                <th class="px-5 py-3.5">Kelas</th>
+                                <th class="px-5 py-3.5 text-center">Sisa Poin</th>
+                                <th class="px-5 py-3.5 text-center">Status</th>
+                                <th class="px-5 py-3.5 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblSiswa" class="divide-y divide-slate-100">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: INPUT PELANGGARAN -->
+            <section id="sec-catat" class="tab-content hidden max-w-2xl mx-auto space-y-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="mb-6 pb-4 border-b border-slate-100">
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Catat Pelanggaran Siswa
+                        </h3>
+                        <p class="text-xs text-slate-500">Poin siswa akan dipotong secara otomatis setelah formulir disimpan.</p>
+                    </div>
+
+                    <form id="formCatatPelanggaran" onsubmit="handleSimpanPelanggaran(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Pilih Siswa *</label>
+                            <select id="inputPelanggaranSiswa" required onchange="updateSiswaInfoPreview()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="">-- Pilih Siswa --</option>
+                            </select>
+                            <div id="previewSiswaPoin" class="mt-2 text-xs text-slate-500 hidden">
+                                Sisa Poin Sekarang: <span id="previewPoinAngka" class="font-bold text-slate-800">100</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Jenis Pelanggaran *</label>
+                            <select id="inputJenisPelanggaran" required onchange="updateBobotPreview()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="">-- Pilih Pelanggaran --</option>
+                            </select>
+                        </div>
+
+                        <div id="boxPreviewBobot" class="hidden bg-amber-50 border border-amber-200 p-3 rounded-xl flex justify-between items-center text-xs text-amber-900">
+                            <span>Bobot Pengurang Poin:</span>
+                            <span id="previewBobotPengurang" class="font-bold text-sm text-rose-600">-0 Poin</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Tanggal Kejadian *</label>
+                            <input type="date" id="inputTanggalPelanggaran" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Catatan Tambahan / Keterangan</label>
+                            <textarea id="inputCatatKeterangan" rows="3" placeholder="Lokasi kejadian, saksi, atau kronologi singkat..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                        </div>
+
+                        <div class="pt-3 flex gap-3">
+                            <button type="submit" class="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm rounded-xl shadow-md transition flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Simpan & Potong Poin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 4: MASTER / KATALOG PELANGGARAN (EDITABLE) -->
+            <section id="sec-katalog" class="tab-content hidden space-y-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg">Kelola Master Jenis Pelanggaran</h3>
+                        <p class="text-xs text-slate-500">Ubah, tambah, atau hapus aturan dan bobot pengurang poin.</p>
+                    </div>
+                    <button onclick="openModalTambahMasterPelanggaran()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium text-xs rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Tambah Pelanggaran
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Ringan -->
+                    <div class="bg-white rounded-2xl border border-emerald-200 overflow-hidden shadow-sm">
+                        <div class="bg-emerald-50 px-4 py-3 border-b border-emerald-100 flex justify-between items-center">
+                            <h4 class="font-bold text-emerald-800 text-sm">Pelanggaran Ringan</h4>
+                            <span class="text-xs bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Ringan</span>
+                        </div>
+                        <ul id="listKatalogRingan" class="p-3 divide-y divide-slate-100 text-xs space-y-2">
+                            <!-- Dynamic -->
+                        </ul>
+                    </div>
+
+                    <!-- Sedang -->
+                    <div class="bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm">
+                        <div class="bg-amber-50 px-4 py-3 border-b border-amber-100 flex justify-between items-center">
+                            <h4 class="font-bold text-amber-800 text-sm">Pelanggaran Sedang</h4>
+                            <span class="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-semibold">Sedang</span>
+                        </div>
+                        <ul id="listKatalogSedang" class="p-3 divide-y divide-slate-100 text-xs space-y-2">
+                            <!-- Dynamic -->
+                        </ul>
+                    </div>
+
+                    <!-- Berat -->
+                    <div class="bg-white rounded-2xl border border-rose-200 overflow-hidden shadow-sm">
+                        <div class="bg-rose-50 px-4 py-3 border-b border-rose-100 flex justify-between items-center">
+                            <h4 class="font-bold text-rose-800 text-sm">Pelanggaran Berat</h4>
+                            <span class="text-xs bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full font-semibold">Berat</span>
+                        </div>
+                        <ul id="listKatalogBerat" class="p-3 divide-y divide-slate-100 text-xs space-y-2">
+                            <!-- Dynamic -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: RIWAYAT & EKSPORT LAPORAN -->
+            <section id="sec-riwayat" class="tab-content hidden space-y-6">
+                <!-- Export Action Panel -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">Eksport Laporan & Rekap</h3>
+                            <p class="text-xs text-slate-500">Unduh laporan rekapitulasi poin pelanggaran siswa per kelas atau riwayat individual.</p>
+                        </div>
+                        <button onclick="window.print()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-medium transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-print"></i> Cetak Tampilan Halaman
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                        <!-- Export Kelas -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                            <h4 class="font-bold text-slate-800 text-xs uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-users-rectangle text-brand-500"></i> Eksport Rekap Per Kelas
+                            </h4>
+                            <div class="flex gap-2">
+                                <select id="exportSelectKelas" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="">-- Pilih Kelas --</option>
+                                </select>
+                                <button onclick="exportRekapKelasCSV()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-file-csv"></i> Unduh CSV
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Export Siswa -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                            <h4 class="font-bold text-slate-800 text-xs uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-check text-brand-500"></i> Eksport Rekap Per Siswa
+                            </h4>
+                            <div class="flex gap-2">
+                                <select id="exportSelectSiswa" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="">-- Pilih Siswa --</option>
+                                </select>
+                                <button onclick="exportRekapSiswaCSV()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="exportRekapSiswaPrint()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF / Cetak
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Riwayat Semua Transaksi -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+                    <div class="p-4 border-b border-slate-100">
+                        <h4 class="font-bold text-slate-800 text-sm">Riwayat Seluruh Catatan Pelanggaran</h4>
+                    </div>
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
+                            <tr>
+                                <th class="px-5 py-3.5">Tanggal</th>
+                                <th class="px-5 py-3.5">Siswa / Kelas</th>
+                                <th class="px-5 py-3.5">Bentuk Pelanggaran</th>
+                                <th class="px-5 py-3.5 text-center">Tingkat</th>
+                                <th class="px-5 py-3.5 text-center">Bobot</th>
+                                <th class="px-5 py-3.5 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblRiwayat" class="divide-y divide-slate-100">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL 1: TAMBAH / EDIT SISWA -->
+    <div id="modalSiswa" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="titleModalSiswa" class="font-bold text-slate-800 text-base">Tambah Siswa Baru</h3>
+                <button onclick="closeModal('modalSiswa')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="formSiswa" onsubmit="handleSimpanSiswa(event)" class="space-y-3">
+                <input type="hidden" id="siswaId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">NISN *</label>
+                    <input type="text" id="siswaNisn" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Lengkap *</label>
+                    <input type="text" id="siswaNama" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kelas *</label>
+                    <input type="text" id="siswaKelas" required placeholder="Contoh: 10 IPA 1" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Orang Tua / Wali</label>
+                    <input type="text" id="siswaOrtu" placeholder="Bapak / Ibu ..." class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalSiswa')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl hover:bg-brand-700 shadow-sm">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: IMPORT SISWA VIA CSV -->
+    <div id="modalImportSiswa" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-file-csv text-emerald-600"></i> Import Data Siswa (CSV)
+                </h3>
+                <button onclick="closeModal('modalImportSiswa')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-xs text-emerald-900 space-y-2">
+                    <p class="font-semibold">Petunjuk Format File CSV:</p>
+                    <p>Format header kolom: <code class="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono">NISN,Nama,Kelas,OrangTua</code></p>
+                    <button onclick="downloadTemplateSiswaCSV()" class="mt-1 px-3 py-1 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition inline-flex items-center gap-1">
+                        <i class="fa-solid fa-download"></i> Unduh Template CSV
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Pilih File CSV *</label>
+                    <input type="file" id="fileCsvSiswa" accept=".csv" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalImportSiswa')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200">Batal</button>
+                    <button onclick="prosesImportSiswaCSV()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 shadow-sm">Proses Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: TAMBAH / EDIT MASTER PELANGGARAN -->
+    <div id="modalMasterPelanggaran" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="titleModalMaster" class="font-bold text-slate-800 text-base">Tambah Master Pelanggaran</h3>
+                <button onclick="closeModal('modalMasterPelanggaran')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="formMasterPelanggaran" onsubmit="handleSimpanMasterPelanggaran(event)" class="space-y-3">
+                <input type="hidden" id="masterOriginalId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kode / No. Pelanggaran *</label>
+                    <input type="text" id="masterId" required placeholder="Contoh: A.25, B.10" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Bentuk / Nama Pelanggaran *</label>
+                    <input type="text" id="masterNama" required placeholder="Deskripsi jenis pelanggaran..." class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Tingkat *</label>
+                        <select id="masterTingkat" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="Ringan">Ringan</option>
+                            <option value="Sedang">Sedang</option>
+                            <option value="Berat">Berat</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Bobot Pengurang *</label>
+                        <input type="number" id="masterBobot" min="1" max="100" required placeholder="2 - 100" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalMasterPelanggaran')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl hover:bg-brand-700 shadow-sm">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: DETAIL SISWA & REKAP POIN -->
+    <div id="modalDetailSiswa" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-address-card text-brand-500"></i> Rekam Jejak Disiplin Siswa
+                </h3>
+                <button onclick="closeModal('modalDetailSiswa')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div id="detailSiswaContent" class="space-y-4 overflow-y-auto flex-1 pr-1">
+                <!-- Dynamic Content -->
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+                <button id="btnCetakSuratModal" onclick="" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-envelope-open-text"></i> Cetak Surat Peringatan (SP)
+                </button>
+                <button type="button" onclick="closeModal('modalDetailSiswa')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: LOG AKTIVITAS -->
+    <div id="modalLogAktivitas" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-brand-500"></i> Log Aktivitas Sistem
+                </h3>
+                <button onclick="closeModal('modalLogAktivitas')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="overflow-y-auto flex-1">
+                <ul id="listLogAktivitas" class="space-y-2 text-xs divide-y divide-slate-100">
+                    <!-- Dynamic -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINT VIEW: SURAT PERINGATAN OFFICIAL FORMAT -->
+    <div id="printAreaSurat" class="print-only p-8 max-w-3xl mx-auto text-black">
+        <div class="text-center border-b-2 border-black pb-4 mb-6">
+            <h2 class="text-xl font-bold uppercase tracking-wider">PEMERINTAH PROVINSI / YAYASAN PENDIDIKAN</h2>
+            <h1 class="text-2xl font-black uppercase">SMA / MADRASAH ALIYAH NEGERI 1</h1>
+            <p class="text-sm">Jl. Pendidikan No. 100, Kota Belajar, Kode Pos 12345</p>
+        </div>
+
+        <div class="text-center mb-6">
+            <h3 class="text-lg font-bold underline uppercase">SURAT PERINGATAN / PANGGILAN ORANG TUA</h3>
+            <p class="text-xs">Nomor: <span id="printNoSurat">100/SP/2026</span></p>
+        </div>
+
+        <div class="space-y-4 text-sm leading-relaxed">
+            <p>Kepada Yth.<br>Bapak/Ibu Orang Tua / Wali murid dari:</p>
+            
+            <table class="w-full my-3 ml-4">
+                <tr><td class="w-36 font-semibold py-1">Nama Siswa</td><td>: <span id="printSiswaNama" class="font-bold"></span></td></tr>
+                <tr><td class="font-semibold py-1">NISN</td><td>: <span id="printSiswaNisn"></span></td></tr>
+                <tr><td class="font-semibold py-1">Kelas</td><td>: <span id="printSiswaKelas"></span></td></tr>
+                <tr><td class="font-semibold py-1">Sisa Poin Disiplin</td><td>: <span id="printSiswaPoin" class="font-bold text-rose-600"></span> / 100 Poin</td></tr>
+                <tr><td class="font-semibold py-1">Kategori Status</td><td>: <span id="printSiswaStatus" class="font-bold"></span></td></tr>
+            </table>
+
+            <p>Dengan ini kami beritahukan bahwa siswa tersebut di atas telah melakukan pelanggaran tata tertib sekolah dengan rincian sebagai berikut:</p>
+
+            <table class="w-full border-collapse border border-black text-xs my-3">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="border border-black p-2">No</th>
+                        <th class="border border-black p-2">Tanggal</th>
+                        <th class="border border-black p-2">Pelanggaran</th>
+                        <th class="border border-black p-2">Bobot Pengurang</th>
+                    </tr>
+                </thead>
+                <tbody id="printTblPelanggaran">
+                    <!-- Dynamic -->
+                </tbody>
+            </table>
+
+            <p>Sehubungan dengan poin disiplin yang tersisa telah mencapai batas peringatan/tindakan khusus, kami mengharapkan kehadiran Bapak/Ibu Orang Tua/Wali pada:</p>
+            
+            <div class="ml-4 space-y-1">
+                <p>Hari / Tanggal : Senin, 26 Oktober 2026</p>
+                <p>Waktu : 09.00 WIB - Selesai</p>
+                <p>Tempat : Ruang Bimbingan Konseling (BK)</p>
+                <p>Acara : Pembinaan & Konferensi Kasus Disiplin Siswa</p>
+            </div>
+
+            <p class="pt-4">Demikian surat pemberitahuan ini kami sampaikan, atas perhatian dan kerja samanya kami ucapkan terima kasih.</p>
+        </div>
+
+        <div class="mt-12 flex justify-between text-center text-sm">
+            <div>
+                <p>Mengetahui,</p>
+                <p class="mb-16">Guru BK / Kesiswaan</p>
+                <p class="font-bold underline">( ____________________ )</p>
+            </div>
+            <div>
+                <p>Kota Belajar, 21 Oktober 2026</p>
+                <p class="mb-16">Kepala Sekolah</p>
+                <p class="font-bold underline">( ____________________ )</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // MASTER KATALOG DEFAULT PELANGGARAN
+        const DEFAULT_KATALOG = [
+            { id: 'A.1', nama: 'Tidak memakai kaos kaki standar', bobot: 2, tingkat: 'Ringan' },
+            { id: 'A.2', nama: 'Tidak memakai sepatu hitam', bobot: 2, tingkat: 'Ringan' },
+            { id: 'A.3', nama: 'Merias wajah/berhias berlebihan', bobot: 2, tingkat: 'Ringan' },
+            { id: 'A.4', nama: 'Atribut seragam tidak lengkap', bobot: 2, tingkat: 'Ringan' },
+            { id: 'A.7', nama: 'Potongan rambut tidak rapi', bobot: 5, tingkat: 'Ringan' },
+            { id: 'A.9', nama: 'Datang terlambat masuk sekolah', bobot: 7, tingkat: 'Ringan' },
+            { id: 'A.13', nama: 'Tidak masuk tanpa keterangan (Alpha)', bobot: 10, tingkat: 'Ringan' },
+            { id: 'A.14', nama: 'Menggunakan HP saat KBM tanpa izin', bobot: 15, tingkat: 'Ringan' },
+            { id: 'A.15', nama: 'Perundungan (Bullying) verbal', bobot: 15, tingkat: 'Ringan' },
+            { id: 'A.21', nama: 'Melompat pagar / keluar tanpa izin', bobot: 20, tingkat: 'Ringan' },
+            { id: 'B.1', nama: 'Pelecehan verbal/tindakan tidak sopan', bobot: 30, tingkat: 'Sedang' },
+            { id: 'B.2', nama: 'Terlibat tawuran antar pelajar', bobot: 30, tingkat: 'Sedang' },
+            { id: 'B.3', nama: 'Berkelahi di lingkungan sekolah', bobot: 30, tingkat: 'Sedang' },
+            { id: 'B.4', nama: 'Bertato / tindik berlebihan', bobot: 50, tingkat: 'Sedang' },
+            { id: 'B.7', nama: 'Mencemarkan nama baik sekolah', bobot: 50, tingkat: 'Sedang' },
+            { id: 'C.1', nama: 'Mencuri / Penggelapan / Pemerasan', bobot: 100, tingkat: 'Berat' },
+            { id: 'C.3', nama: 'Membawa/menggunakan Narkoba/Miras', bobot: 100, tingkat: 'Berat' },
+            { id: 'C.5', nama: 'Membawa senjata tajam/senjata api', bobot: 100, tingkat: 'Berat' },
+            { id: 'C.6', nama: 'Tindak kekerasan / menyerang guru/staf', bobot: 100, tingkat: 'Berat' }
+        ];
+
+        // SAMPLE DATA INITIALIZER
+        const SAMPLE_SISWA = [
+            { id: 's1', nisn: '0051234001', nama: 'Ahmad Rizky', kelas: '10 IPA 1', ortu: 'Budi Santoso', poin: 100 },
+            { id: 's2', nisn: '0051234002', nama: 'Siti Nurhaliza', kelas: '10 IPS 1', ortu: 'Rahmat Hidayat', poin: 85 },
+            { id: 's3', nisn: '0051234003', nama: 'Budi Pratama', kelas: '11 IPA 1', ortu: 'Hendra Wijaya', poin: 55 },
+            { id: 's4', nisn: '0051234004', nama: 'Dewi Lestari', kelas: '11 IPS 2', ortu: 'Agus Setiawan', poin: 20 },
+            { id: 's5', nisn: '0051234005', nama: 'Eko Prasetyo', kelas: '12 IPA 2', ortu: 'Joko Susilo', poin: 100 }
+        ];
+
+        const SAMPLE_PELANGGARAN = [
+            { id: 'p1', siswaId: 's2', pelanggaranId: 'A.14', tanggal: '2026-10-15', catatan: 'Bermain game online saat jam matematika' },
+            { id: 'p2', siswaId: 's3', pelanggaranId: 'A.9', tanggal: '2026-10-18', catatan: 'Terlambat 20 menit' },
+            { id: 'p3', siswaId: 's3', pelanggaranId: 'B.1', tanggal: '2026-10-19', catatan: 'Mengejek dan membentak petugas perpustakaan' },
+            { id: 'p4', siswaId: 's4', pelanggaranId: 'B.4', tanggal: '2026-10-10', catatan: 'Membuat tato temporer di lengan' },
+            { id: 'p5', siswaId: 's4', pelanggaranId: 'B.3', tanggal: '2026-10-20', catatan: 'Berkelahi di area kantin' }
+        ];
+
+        const SAMPLE_LOGS = [
+            { id: 'l1', waktu: '2026-10-21 08:00', pesan: 'Sistem diinisialisasi dengan data sampel.' }
+        ];
+
+        // STATE MANAGEMENT WITH LOCALSTORAGE
+        let dataSiswa = JSON.parse(localStorage.getItem('sipon_siswa')) || SAMPLE_SISWA;
+        let katalogPelanggaran = JSON.parse(localStorage.getItem('sipon_katalog')) || DEFAULT_KATALOG;
+        let dataPelanggaran = JSON.parse(localStorage.getItem('sipon_pelanggaran')) || SAMPLE_PELANGGARAN;
+        let dataLogs = JSON.parse(localStorage.getItem('sipon_logs')) || SAMPLE_LOGS;
+
+        let chartStatusInstance = null;
+        let chartKategoriInstance = null;
+
+        function saveData() {
+            localStorage.setItem('sipon_siswa', JSON.stringify(dataSiswa));
+            localStorage.setItem('sipon_katalog', JSON.stringify(katalogPelanggaran));
+            localStorage.setItem('sipon_pelanggaran', JSON.stringify(dataPelanggaran));
+            localStorage.setItem('sipon_logs', JSON.stringify(dataLogs));
+        }
+
+        function addLog(pesan) {
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            dataLogs.unshift({ id: 'l_' + Date.now(), waktu: timeStr, pesan: pesan });
+            if (dataLogs.length > 50) dataLogs.pop();
+            saveData();
+        }
+
+        function resetToSampleData() {
+            if (confirm('Apakah Anda yakin ingin mengembalikan seluruh data ke sampel standar? Data tambahan Anda akan dihapus.')) {
+                dataSiswa = JSON.parse(JSON.stringify(SAMPLE_SISWA));
+                katalogPelanggaran = JSON.parse(JSON.stringify(DEFAULT_KATALOG));
+                dataPelanggaran = JSON.parse(JSON.stringify(SAMPLE_PELANGGARAN));
+                dataLogs = JSON.parse(JSON.stringify(SAMPLE_LOGS));
+                recalculateAllPoin();
+                saveData();
+                refreshApp();
+                alert('Data berhasil di-reset ke sampel awal!');
+            }
+        }
+
+        function getStatusInfo(poin) {
+            if (poin >= 71) return { label: 'Aman', bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-200' };
+            if (poin >= 31) return { label: 'Waspada', bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200' };
+            return { label: 'Bahaya', bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-200' };
+        }
+
+        function recalculateAllPoin() {
+            dataSiswa.forEach(s => {
+                let totalPengurang = 0;
+                const records = dataPelanggaran.filter(p => p.siswaId === s.id);
+                records.forEach(r => {
+                    const k = katalogPelanggaran.find(kat => kat.id === r.pelanggaranId);
+                    if (k) totalPengurang += Number(k.bobot);
+                });
+                s.poin = Math.max(0, 100 - totalPengurang);
+            });
+        }
+
+        function getDaftarKelas() {
+            const list = [...new Set(dataSiswa.map(s => s.kelas))].filter(Boolean);
+            return list.sort();
+        }
+
+        // TABS NAVIGATION
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(el => {
+                el.classList.remove('bg-brand-50', 'text-brand-600', 'font-semibold');
+                el.classList.add('text-slate-600', 'font-medium');
+            });
+
+            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
+            const activeTabBtn = document.getElementById(`tab-${tabName}`);
+            activeTabBtn.classList.add('bg-brand-50', 'text-brand-600', 'font-semibold');
+            activeTabBtn.classList.remove('text-slate-600', 'font-medium');
+
+            if (tabName === 'dashboard') renderDashboard();
+            if (tabName === 'siswa') renderSiswaTable();
+            if (tabName === 'catat') prepareCatatForm();
+            if (tabName === 'katalog') renderKatalog();
+            if (tabName === 'riwayat') prepareRiwayatPage();
+        }
+
+        // RENDER DASHBOARD
+        function renderDashboard() {
+            recalculateAllPoin();
+
+            const totalSiswa = dataSiswa.length;
+            const totalPelanggaran = dataPelanggaran.length;
+            const siswaPerluPenanganan = dataSiswa.filter(s => s.poin <= 70);
+
+            document.getElementById('statTotalSiswa').innerText = totalSiswa;
+            document.getElementById('statTotalPelanggaran').innerText = totalPelanggaran;
+            document.getElementById('statPerluPenanganan').innerText = siswaPerluPenanganan.length;
+
+            // Render List Critical Students
+            const listContainer = document.getElementById('listPerluPenanganan');
+            if (siswaPerluPenanganan.length === 0) {
+                listContainer.innerHTML = `<div class="p-4 text-xs text-slate-400 text-center">Semua siswa dalam status disiplin Aman.</div>`;
+            } else {
+                listContainer.innerHTML = siswaPerluPenanganan.map(s => {
+                    const st = getStatusInfo(s.poin);
+                    return `
+                        <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition">
+                            <div>
+                                <h5 class="font-bold text-slate-800 text-sm">${s.nama} <span class="text-xs font-normal text-slate-500">(${s.kelas})</span></h5>
+                                <p class="text-xs text-slate-500">Orang Tua: ${s.ortu || '-'}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <span class="text-xs font-bold ${st.text}">${s.poin} Poin Sisa</span>
+                                    <span class="block text-[10px] uppercase font-semibold ${st.text}">${st.label}</span>
+                                </div>
+                                <button onclick="openDetailSiswa('${s.id}')" class="p-2 text-slate-400 hover:text-brand-600"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            initCharts();
+        }
+
+        function initCharts() {
+            const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+            const ctxKategori = document.getElementById('chartKategori').getContext('2d');
+
+            const statusAman = dataSiswa.filter(s => s.poin >= 71).length;
+            const statusWaspada = dataSiswa.filter(s => s.poin >= 31 && s.poin <= 70).length;
+            const statusBahaya = dataSiswa.filter(s => s.poin <= 30).length;
+
+            if (chartStatusInstance) chartStatusInstance.destroy();
+            chartStatusInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Aman (71-100)', 'Waspada (31-70)', 'Bahaya (0-30)'],
+                    datasets: [{
+                        data: [statusAman, statusWaspada, statusBahaya],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            let cRingan = 0, cSedang = 0, cBerat = 0;
+            dataPelanggaran.forEach(p => {
+                const kat = katalogPelanggaran.find(k => k.id === p.pelanggaranId);
+                if (kat) {
+                    if (kat.tingkat === 'Ringan') cRingan++;
+                    if (kat.tingkat === 'Sedang') cSedang++;
+                    if (kat.tingkat === 'Berat') cBerat++;
+                }
+            });
+
+            if (chartKategoriInstance) chartKategoriInstance.destroy();
+            chartKategoriInstance = new Chart(ctxKategori, {
+                type: 'bar',
+                data: {
+                    labels: ['Ringan', 'Sedang', 'Berat'],
+                    datasets: [{
+                        label: 'Jumlah Kasus',
+                        data: [cRingan, cSedang, cBerat],
+                        backgroundColor: ['#34d399', '#fbbf24', '#f87171']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // RENDER SISWA TABLE
+        function renderSiswaTable() {
+            recalculateAllPoin();
+            
+            // Populate Kelas Filter Options
+            const selectKelas = document.getElementById('filterKelas');
+            const currentSelectedKelas = selectKelas.value;
+            selectKelas.innerHTML = '<option value="">Semua Kelas</option>' + 
+                getDaftarKelas().map(k => `<option value="${k}" ${k === currentSelectedKelas ? 'selected' : ''}>${k}</option>`).join('');
+
+            const search = document.getElementById('searchSiswa').value.toLowerCase();
+            const kelas = selectKelas.value;
+            const status = document.getElementById('filterStatus').value;
+
+            const tbody = document.getElementById('tblSiswa');
+            
+            let filtered = dataSiswa.filter(s => {
+                const matchSearch = s.nama.toLowerCase().includes(search) || s.nisn.toLowerCase().includes(search);
+                const matchKelas = kelas === '' || s.kelas === kelas;
+                const st = getStatusInfo(s.poin);
+                const matchStatus = status === '' || st.label === status;
+                return matchSearch && matchKelas && matchStatus;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-xs text-slate-400">Tidak ada data siswa ditemukan.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(s => {
+                const st = getStatusInfo(s.poin);
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-5 py-3.5">
+                            <div class="font-bold text-slate-800">${s.nama}</div>
+                            <div class="text-xs text-slate-400">NISN: ${s.nisn}</div>
+                        </td>
+                        <td class="px-5 py-3.5 font-medium text-slate-600">${s.kelas}</td>
+                        <td class="px-5 py-3.5 text-center font-extrabold text-base text-slate-800">${s.poin}</td>
+                        <td class="px-5 py-3.5 text-center">
+                            <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${st.bg} ${st.text}">
+                                ${st.label}
+                            </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-right space-x-1">
+                            <button onclick="openDetailSiswa('${s.id}')" class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg text-xs font-medium" title="Detail Rekap">
+                                <i class="fa-solid fa-eye"></i> Detail
+                            </button>
+                            <button onclick="openEditSiswa('${s.id}')" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg text-xs" title="Edit">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="hapusSiswa('${s.id}')" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg text-xs" title="Hapus">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // SISWA FORM & IMPORT CSV HANDLERS
+        function handleSimpanSiswa(e) {
+            e.preventDefault();
+            const id = document.getElementById('siswaId').value;
+            const nisn = document.getElementById('siswaNisn').value.trim();
+            const nama = document.getElementById('siswaNama').value.trim();
+            const kelas = document.getElementById('siswaKelas').value.trim();
+            const ortu = document.getElementById('siswaOrtu').value.trim();
+
+            if (id) {
+                const index = dataSiswa.findIndex(s => s.id === id);
+                if (index !== -1) {
+                    dataSiswa[index].nisn = nisn;
+                    dataSiswa[index].nama = nama;
+                    dataSiswa[index].kelas = kelas;
+                    dataSiswa[index].ortu = ortu;
+                    addLog(`Mengedit data siswa: ${nama}`);
+                }
+            } else {
+                const newSiswa = {
+                    id: 's_' + Date.now() + Math.random().toString(36).substr(2, 4),
+                    nisn: nisn,
+                    nama: nama,
+                    kelas: kelas,
+                    ortu: ortu,
+                    poin: 100
+                };
+                dataSiswa.push(newSiswa);
+                addLog(`Menambahkan siswa baru: ${nama} (${kelas})`);
+            }
+
+            saveData();
+            closeModal('modalSiswa');
+            renderSiswaTable();
+        }
+
+        function openEditSiswa(id) {
+            const s = dataSiswa.find(item => item.id === id);
+            if (!s) return;
+            document.getElementById('siswaId').value = s.id;
+            document.getElementById('siswaNisn').value = s.nisn;
+            document.getElementById('siswaNama').value = s.nama;
+            document.getElementById('siswaKelas').value = s.kelas;
+            document.getElementById('siswaOrtu').value = s.ortu || '';
+            document.getElementById('titleModalSiswa').innerText = 'Edit Data Siswa';
+            openModal('modalSiswa');
+        }
+
+        function hapusSiswa(id) {
+            const s = dataSiswa.find(item => item.id === id);
+            if (!s) return;
+            if (confirm(`Apakah Anda yakin ingin menghapus data siswa ${s.nama}? Seluruh riwayat pelanggarannya juga akan terhapus.`)) {
+                dataSiswa = dataSiswa.filter(item => item.id !== id);
+                dataPelanggaran = dataPelanggaran.filter(item => item.siswaId !== id);
+                addLog(`Menghapus siswa: ${s.nama}`);
+                saveData();
+                renderSiswaTable();
+            }
+        }
+
+        function downloadTemplateSiswaCSV() {
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "NISN,Nama,Kelas,OrangTua\n"
+                + "0059990001,Budi Kurniawan,10 IPA 1,Suryanto\n"
+                + "0059990002,Siti Aminah,10 IPS 1,Rahmat";
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "template_import_siswa.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function prosesImportSiswaCSV() {
+            const fileInput = document.getElementById('fileCsvSiswa');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Silakan pilih file CSV terlebih dahulu!');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                let importedCount = 0;
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const cols = line.split(',');
+                    if (cols.length >= 3) {
+                        const nisn = cols[0].trim();
+                        const nama = cols[1].trim();
+                        const kelas = cols[2].trim();
+                        const ortu = cols[3] ? cols[3].trim() : '';
+
+                        if (nama && nisn) {
+                            dataSiswa.push({
+                                id: 's_' + Date.now() + i,
+                                nisn: nisn,
+                                nama: nama,
+                                kelas: kelas,
+                                ortu: ortu,
+                                poin: 100
+                            });
+                            importedCount++;
+                        }
+                    }
+                }
+
+                if (importedCount > 0) {
+                    recalculateAllPoin();
+                    saveData();
+                    addLog(`Berhasil mengimport ${importedCount} data siswa dari CSV.`);
+                    alert(`Berhasil meng-import ${importedCount} siswa!`);
+                    closeModal('modalImportSiswa');
+                    fileInput.value = '';
+                    renderSiswaTable();
+                } else {
+                    alert('Gagal mengimport data. Pastikan format kolom CSV sesuai template.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // CATAT PELANGGARAN FORM
+        function prepareCatatForm() {
+            recalculateAllPoin();
+            const selSiswa = document.getElementById('inputPelanggaranSiswa');
+            selSiswa.innerHTML = '<option value="">-- Pilih Siswa --</option>' + 
+                dataSiswa.map(s => `<option value="${s.id}">${s.nama} (${s.kelas}) - Sisa Poin: ${s.poin}</option>`).join('');
+
+            const selJenis = document.getElementById('inputJenisPelanggaran');
+            selJenis.innerHTML = '<option value="">-- Pilih Jenis Pelanggaran --</option>' +
+                katalogPelanggaran.map(k => `<option value="${k.id}">[${k.id}] ${k.nama} (-${k.bobot} Poin)</option>`).join('');
+
+            document.getElementById('inputTanggalPelanggaran').value = new Date().toISOString().split('T')[0];
+        }
+
+        function updateSiswaInfoPreview() {
+            const siswaId = document.getElementById('inputPelanggaranSiswa').value;
+            const box = document.getElementById('previewSiswaPoin');
+            if (siswaId) {
+                const s = dataSiswa.find(item => item.id === siswaId);
+                document.getElementById('previewPoinAngka').innerText = s ? s.poin : 100;
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        function updateBobotPreview() {
+            const katId = document.getElementById('inputJenisPelanggaran').value;
+            const box = document.getElementById('boxPreviewBobot');
+            if (katId) {
+                const k = katalogPelanggaran.find(item => item.id === katId);
+                if (k) {
+                    document.getElementById('previewBobotPengurang').innerText = `-${k.bobot} Poin (${k.tingkat})`;
+                    box.classList.remove('hidden');
+                }
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        function handleSimpanPelanggaran(e) {
+            e.preventDefault();
+            const siswaId = document.getElementById('inputPelanggaranSiswa').value;
+            const katId = document.getElementById('inputJenisPelanggaran').value;
+            const tgl = document.getElementById('inputTanggalPelanggaran').value;
+            const ket = document.getElementById('inputCatatKeterangan').value.trim();
+
+            const newPelanggaran = {
+                id: 'p_' + Date.now(),
+                siswaId: siswaId,
+                pelanggaranId: katId,
+                tanggal: tgl,
+                catatan: ket
+            };
+
+            dataPelanggaran.unshift(newPelanggaran);
+            recalculateAllPoin();
+
+            const s = dataSiswa.find(item => item.id === siswaId);
+            const k = katalogPelanggaran.find(item => item.id === katId);
+            addLog(`Mencatat pelanggaran untuk ${s.nama}: ${k.nama} (-${k.bobot} poin). Sisa Poin: ${s.poin}`);
+
+            saveData();
+            alert('Pelanggaran berhasil dicatat dan poin siswa otomatis dipotong!');
+            
+            document.getElementById('formCatatPelanggaran').reset();
+            document.getElementById('boxPreviewBobot').classList.add('hidden');
+            document.getElementById('previewSiswaPoin').classList.add('hidden');
+            switchTab('riwayat');
+        }
+
+        // KATALOG / MASTER PELANGGARAN MANAGEMENTS
+        function renderKatalog() {
+            const rContainer = document.getElementById('listKatalogRingan');
+            const sContainer = document.getElementById('listKatalogSedang');
+            const bContainer = document.getElementById('listKatalogBerat');
+
+            const ringan = katalogPelanggaran.filter(k => k.tingkat === 'Ringan');
+            const sedang = katalogPelanggaran.filter(k => k.tingkat === 'Sedang');
+            const berat = katalogPelanggaran.filter(k => k.tingkat === 'Berat');
+
+            const renderItem = (k) => `
+                <li class="py-2 flex justify-between items-start gap-2">
+                    <div class="flex-1">
+                        <span class="font-bold text-slate-800">${k.id}:</span> 
+                        <span class="text-slate-700">${k.nama}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <span class="font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded text-[11px]">- ${k.bobot} Poin</span>
+                        <button onclick="openEditMasterPelanggaran('${k.id}')" class="text-slate-400 hover:text-amber-600 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
+                        <button onclick="hapusMasterPelanggaran('${k.id}')" class="text-slate-400 hover:text-rose-600 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </div>
+                </li>
+            `;
+
+            rContainer.innerHTML = ringan.map(renderItem).join('') || '<li class="text-slate-400 italic">Belum ada data.</li>';
+            sContainer.innerHTML = sedang.map(renderItem).join('') || '<li class="text-slate-400 italic">Belum ada data.</li>';
+            bContainer.innerHTML = berat.map(renderItem).join('') || '<li class="text-slate-400 italic">Belum ada data.</li>';
+        }
+
+        function openModalTambahMasterPelanggaran() {
+            document.getElementById('formMasterPelanggaran').reset();
+            document.getElementById('masterOriginalId').value = '';
+            document.getElementById('titleModalMaster').innerText = 'Tambah Master Pelanggaran';
+            openModal('modalMasterPelanggaran');
+        }
+
+        function openEditMasterPelanggaran(id) {
+            const k = katalogPelanggaran.find(item => item.id === id);
+            if (!k) return;
+            document.getElementById('masterOriginalId').value = k.id;
+            document.getElementById('masterId').value = k.id;
+            document.getElementById('masterNama').value = k.nama;
+            document.getElementById('masterTingkat').value = k.tingkat;
+            document.getElementById('masterBobot').value = k.bobot;
+            document.getElementById('titleModalMaster').innerText = 'Edit Master Pelanggaran';
+            openModal('modalMasterPelanggaran');
+        }
+
+        function handleSimpanMasterPelanggaran(e) {
+            e.preventDefault();
+            const origId = document.getElementById('masterOriginalId').value;
+            const newId = document.getElementById('masterId').value.trim();
+            const nama = document.getElementById('masterNama').value.trim();
+            const tingkat = document.getElementById('masterTingkat').value;
+            const bobot = parseInt(document.getElementById('masterBobot').value);
+
+            if (origId) {
+                // Update
+                const index = katalogPelanggaran.findIndex(item => item.id === origId);
+                if (index !== -1) {
+                    katalogPelanggaran[index] = { id: newId, nama: nama, tingkat: tingkat, bobot: bobot };
+                    addLog(`Mengubah master pelanggaran Kode: ${newId}`);
+                }
+            } else {
+                // Check duplicate ID
+                if (katalogPelanggaran.some(item => item.id === newId)) {
+                    alert('Kode Pelanggaran tersebut sudah digunakan! Gunakan kode lain.');
+                    return;
+                }
+                katalogPelanggaran.push({ id: newId, nama: nama, tingkat: tingkat, bobot: bobot });
+                addLog(`Menambah master pelanggaran baru: [${newId}] ${nama}`);
+            }
+
+            saveData();
+            recalculateAllPoin();
+            closeModal('modalMasterPelanggaran');
+            renderKatalog();
+        }
+
+        function hapusMasterPelanggaran(id) {
+            const k = katalogPelanggaran.find(item => item.id === id);
+            if (!k) return;
+            if (confirm(`Apakah Anda yakin ingin menghapus aturan pelanggaran [${k.id}] ${k.nama}?`)) {
+                katalogPelanggaran = katalogPelanggaran.filter(item => item.id !== id);
+                saveData();
+                recalculateAllPoin();
+                addLog(`Menghapus master pelanggaran: ${k.id}`);
+                renderKatalog();
+            }
+        }
+
+        // RIWAYAT & EXPORT PAGE
+        function prepareRiwayatPage() {
+            recalculateAllPoin();
+
+            // Populate Export Dropdowns
+            const selKelas = document.getElementById('exportSelectKelas');
+            selKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>' + 
+                getDaftarKelas().map(k => `<option value="${k}">${k}</option>`).join('');
+
+            const selSiswa = document.getElementById('exportSelectSiswa');
+            selSiswa.innerHTML = '<option value="">-- Pilih Siswa --</option>' + 
+                dataSiswa.map(s => `<option value="${s.id}">${s.nama} (${s.kelas})</option>`).join('');
+
+            renderRiwayatTable();
+        }
+
+        function renderRiwayatTable() {
+            const tbody = document.getElementById('tblRiwayat');
+            if (dataPelanggaran.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-xs text-slate-400">Belum ada riwayat pelanggaran dicatat.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = dataPelanggaran.map(p => {
+                const s = dataSiswa.find(item => item.id === p.siswaId) || { nama: 'Siswa Dihapus', kelas: '-' };
+                const k = katalogPelanggaran.find(item => item.id === p.pelanggaranId) || { nama: 'Aturan Dihapus', bobot: 0, tingkat: '-' };
+
+                let badgeColor = 'bg-slate-100 text-slate-700';
+                if (k.tingkat === 'Ringan') badgeColor = 'bg-emerald-100 text-emerald-800';
+                if (k.tingkat === 'Sedang') badgeColor = 'bg-amber-100 text-amber-800';
+                if (k.tingkat === 'Berat') badgeColor = 'bg-rose-100 text-rose-800';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-5 py-3.5 text-xs font-medium text-slate-500">${p.tanggal}</td>
+                        <td class="px-5 py-3.5">
+                            <div class="font-bold text-slate-800 text-xs">${s.nama}</div>
+                            <div class="text-[10px] text-slate-400">${s.kelas}</div>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <div class="text-xs font-semibold text-slate-700">${k.nama}</div>
+                            <div class="text-[10px] text-slate-400">${p.catatan || '-'}</div>
+                        </td>
+                        <td class="px-5 py-3.5 text-center">
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColor}">${k.tingkat}</span>
+                        </td>
+                        <td class="px-5 py-3.5 text-center font-bold text-rose-600 text-xs">-${k.bobot}</td>
+                        <td class="px-5 py-3.5 text-right">
+                            <button onclick="hapusPelanggaran('${p.id}')" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded" title="Batal / Hapus">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function hapusPelanggaran(id) {
+            const p = dataPelanggaran.find(item => item.id === id);
+            if (!p) return;
+            if (confirm('Apakah Anda yakin ingin menghapus catatan pelanggaran ini? Poin siswa akan dikembalikan secara otomatis.')) {
+                dataPelanggaran = dataPelanggaran.filter(item => item.id !== id);
+                recalculateAllPoin();
+                addLog('Menghapus catatan pelanggaran ID: ' + id);
+                saveData();
+                renderRiwayatTable();
+            }
+        }
+
+        // EXPORT REKAP FUNCTIONS
+        function exportRekapKelasCSV() {
+            const kelas = document.getElementById('exportSelectKelas').value;
+            if (!kelas) {
+                alert('Silakan pilih kelas terlebih dahulu!');
+                return;
+            }
+
+            recalculateAllPoin();
+            const listSiswaKelas = dataSiswa.filter(s => s.kelas === kelas);
+
+            if (listSiswaKelas.length === 0) {
+                alert('Tidak ada siswa di kelas ini.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,NISN,Nama,Kelas,OrangTua,SisaPoin,TotalPelanggaran,Status\n";
+            listSiswaKelas.forEach(s => {
+                const totalPelanggaran = dataPelanggaran.filter(p => p.siswaId === s.id).length;
+                const status = getStatusInfo(s.poin).label;
+                csvContent += `"${s.nisn}","${s.nama}","${s.kelas}","${s.ortu || '-'}","${s.poin}","${totalPelanggaran}","${status}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Rekap_Poin_Kelas_${kelas.replace(/\s+/g, '_')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportRekapSiswaCSV() {
+            const siswaId = document.getElementById('exportSelectSiswa').value;
+            if (!siswaId) {
+                alert('Silakan pilih siswa terlebih dahulu!');
+                return;
+            }
+
+            const s = dataSiswa.find(item => item.id === siswaId);
+            const records = dataPelanggaran.filter(p => p.siswaId === s.id);
+
+            let csvContent = `data:text/csv;charset=utf-8,Laporan Disiplin Siswa: ${s.nama} (${s.kelas})\n`;
+            csvContent += `NISN: ${s.nisn},Sisa Poin: ${s.poin}\n\n`;
+            csvContent += "Tanggal,KodePelanggaran,BentukPelanggaran,Tingkat,BobotPengurang,Catatan\n";
+
+            records.forEach(r => {
+                const k = katalogPelanggaran.find(kat => kat.id === r.pelanggaranId) || { nama: '-', bobot: 0, tingkat: '-' };
+                csvContent += `"${r.tanggal}","${r.pelanggaranId}","${k.nama}","${k.tingkat}","-${k.bobot}","${r.catatan || '-'}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Rekap_Pelanggaran_${s.nama.replace(/\s+/g, '_')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportRekapSiswaPrint() {
+            const siswaId = document.getElementById('exportSelectSiswa').value;
+            if (!siswaId) {
+                alert('Silakan pilih siswa terlebih dahulu!');
+                return;
+            }
+            openDetailSiswa(siswaId);
+        }
+
+        // DETAIL MODAL & CETAK SURAT
+        function openDetailSiswa(id) {
+            recalculateAllPoin();
+            const s = dataSiswa.find(item => item.id === id);
+            if (!s) return;
+
+            const st = getStatusInfo(s.poin);
+            const riwayatSiswa = dataPelanggaran.filter(p => p.siswaId === s.id);
+
+            const content = document.getElementById('detailSiswaContent');
+            document.getElementById('btnCetakSuratModal').setAttribute('onclick', `cetakSuratPeringatan('${s.id}')`);
+
+            content.innerHTML = `
+                <div class="bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-lg">${s.nama}</h4>
+                        <p class="text-xs text-slate-500">NISN: ${s.nisn} | Kelas: ${s.kelas}</p>
+                        <p class="text-xs text-slate-500">Orang Tua / Wali: ${s.ortu || '-'}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-3xl font-black text-slate-800">${s.poin}</span>
+                        <span class="block text-[10px] font-bold uppercase ${st.text}">${st.label}</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <h5 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Riwayat Pelanggaran Siswa</h5>
+                    ${riwayatSiswa.length === 0 ? '<p class="text-xs text-slate-400 italic">Siswa belum memiliki riwayat pelanggaran.</p>' : `
+                        <div class="divide-y divide-slate-100 bg-white border border-slate-200 rounded-xl overflow-hidden">
+                            ${riwayatSiswa.map(r => {
+                                const k = katalogPelanggaran.find(kat => kat.id === r.pelanggaranId) || { nama: '-', bobot: 0 };
+                                return `
+                                    <div class="p-3 text-xs flex justify-between items-start">
+                                        <div>
+                                            <div class="font-semibold text-slate-800">${k.nama}</div>
+                                            <div class="text-[10px] text-slate-400">${r.tanggal} ${r.catatan ? ' - ' + r.catatan : ''}</div>
+                                        </div>
+                                        <span class="font-bold text-rose-600">-${k.bobot} Poin</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+
+            openModal('modalDetailSiswa');
+        }
+
+        function cetakSuratPeringatan(id) {
+            const s = dataSiswa.find(item => item.id === id);
+            if (!s) return;
+
+            const st = getStatusInfo(s.poin);
+            const riwayatSiswa = dataPelanggaran.filter(p => p.siswaId === s.id);
+
+            document.getElementById('printSiswaNama').innerText = s.nama;
+            document.getElementById('printSiswaNisn').innerText = s.nisn;
+            document.getElementById('printSiswaKelas').innerText = s.kelas;
+            document.getElementById('printSiswaPoin').innerText = s.poin;
+            document.getElementById('printSiswaStatus').innerText = st.label;
+
+            const printTbl = document.getElementById('printTblPelanggaran');
+            if (riwayatSiswa.length === 0) {
+                printTbl.innerHTML = `<tr><td colspan="4" class="p-2 text-center border border-black">Belum ada catatan pelanggaran.</td></tr>`;
+            } else {
+                printTbl.innerHTML = riwayatSiswa.map((r, i) => {
+                    const k = katalogPelanggaran.find(kat => kat.id === r.pelanggaranId) || { nama: '-', bobot: 0 };
+                    return `
+                        <tr>
+                            <td class="border border-black p-2 text-center">${i+1}</td>
+                            <td class="border border-black p-2">${r.tanggal}</td>
+                            <td class="border border-black p-2">${k.nama}</td>
+                            <td class="border border-black p-2 text-center">-${k.bobot} Poin</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            window.print();
+        }
+
+        // LOG MODAL RENDER
+        function renderLogs() {
+            const list = document.getElementById('listLogAktivitas');
+            list.innerHTML = dataLogs.map(l => `
+                <li class="py-2">
+                    <span class="text-[10px] text-slate-400 font-mono">${l.waktu}</span>
+                    <p class="text-xs text-slate-700 font-medium">${l.pesan}</p>
+                </li>
+            `).join('');
+        }
+
+        // MODAL HELPERS
+        function openModal(modalId) {
+            if (modalId === 'modalLogAktivitas') renderLogs();
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function refreshApp() {
+            switchTab('dashboard');
+        }
+
+        // INITIAL ON LOAD
+        window.onload = function() {
+            recalculateAllPoin();
+            renderDashboard();
+        };
+    </script>
+</body>
+</html>
